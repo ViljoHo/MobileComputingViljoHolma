@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.mobilecomputing
 
 import android.os.Bundle
@@ -25,16 +27,30 @@ import com.mobilecomputing.ui.theme.MobileComputingTheme
 import androidx.compose.foundation.border
 import androidx.compose.material3.MaterialTheme
 import android.content.res.Configuration
+import androidx.compose.material3.Icon
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
 
 class MainActivity : ComponentActivity() {
@@ -42,13 +58,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MobileComputingTheme {
-                Conversation(SampleData.conversationSample)
+                MyApp()
             }
         }
     }
 }
 
 data class Message(val author: String, val body: String)
+
+
 
 @Composable
 fun MessageCard(msg: Message) {
@@ -84,7 +102,9 @@ fun MessageCard(msg: Message) {
                 shape = MaterialTheme.shapes.medium,
                 shadowElevation = 1.dp,
                 color = surfaceColor,
-                modifier = Modifier.animateContentSize().padding(1.dp)
+                modifier = Modifier
+                    .animateContentSize()
+                    .padding(1.dp)
                 ) {
                 Text(
                     text = msg.body,
@@ -99,11 +119,98 @@ fun MessageCard(msg: Message) {
 }
 
 @Composable
-fun Conversation(message: List<Message>) {
-    LazyColumn {
-        items(message) { message ->
-            MessageCard(message)
+fun Conversation(message: List<Message>, innerPaddingValues: PaddingValues) {
+    Row(modifier = Modifier.padding(top = innerPaddingValues.calculateTopPadding())) {
+        LazyColumn {
+            items(message) { message ->
+                MessageCard(message)
+            }
         }
+
+    }
+}
+
+@Composable
+fun SettingsContent(innerPaddingValues: PaddingValues) {
+    Row(modifier = Modifier.padding(top = innerPaddingValues.calculateTopPadding())) {
+        Text(text = "Settings screen is coming here...")
+
+    }
+
+}
+
+@Composable
+fun SettingsScreen(onNavigateToLandingPage: () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.primary,
+                ),
+                title = {
+                    Text("Settings Screen")
+                },
+                navigationIcon = {
+                    IconButton(onClick = {onNavigateToLandingPage()}) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Settings button")
+                    }
+                }
+            )
+        },
+    ) { innerPadding ->
+        SettingsContent(innerPadding)
+    }
+}
+
+
+@Composable
+fun LandingScreen(onNavigateToSettings: () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.primary,
+                ),
+                title = {
+                    Text("Landing Screen")
+                },
+                actions = {
+                    IconButton(onClick = {onNavigateToSettings()}) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Settings button")
+                    }
+                }
+            )
+        },
+    ) { innerPadding ->
+        Conversation(SampleData.conversationSample, innerPadding)
+    }
+
+
+}
+
+
+@Composable
+fun MyApp() {
+    val navController = rememberNavController()
+    NavHost(navController, startDestination = "landingScreen" ) {
+        composable("landingScreen") { LandingScreen(onNavigateToSettings = { navController.navigate("settingsScreen")})}
+        composable("settingsScreen") { SettingsScreen(onNavigateToLandingPage = {
+            navController.navigate("landingScreen") {
+                popUpTo("landingScreen") {
+                    inclusive = true
+                }
+            }
+        }) }
+    }
+}
+
+@Preview
+@Composable
+fun PreviewMyApp() {
+    MobileComputingTheme {
+        MyApp()
     }
 }
 
@@ -111,7 +218,7 @@ fun Conversation(message: List<Message>) {
 @Composable
 fun PreviewConversation() {
     MobileComputingTheme {
-        Conversation(SampleData.conversationSample)
+        Conversation(SampleData.conversationSample, innerPaddingValues = PaddingValues(0.dp))
     }
 }
 
