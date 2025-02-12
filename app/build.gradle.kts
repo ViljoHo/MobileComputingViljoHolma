@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.mobilecomputing"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.mobilecomputing"
         minSdk = 28
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -71,6 +71,9 @@ dependencies {
     implementation("androidx.navigation:navigation-ui-ktx:$navVersion")
     implementation("androidx.navigation:navigation-dynamic-features-fragment:$navVersion")
     implementation("androidx.navigation:navigation-compose:$navVersion")
+    implementation("androidx.activity:activity-ktx:1.6.0")
+    implementation("androidx.fragment:fragment-ktx:1.5.0")
+    implementation("androidx.core:core-ktx:1.15.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
     androidTestImplementation("androidx.navigation:navigation-testing:$navVersion")
     testImplementation("junit:junit:4.13.2")

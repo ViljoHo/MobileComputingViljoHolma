@@ -2,22 +2,23 @@
 
 package com.mobilecomputing
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,8 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.mobilecomputing.ui.theme.MobileComputingTheme
 import androidx.compose.foundation.border
 import androidx.compose.material3.MaterialTheme
-import android.content.res.Configuration
-import android.net.Uri
+import android.os.Build
 import androidx.compose.material3.Icon
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -41,7 +41,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,21 +60,34 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.material3.TextField
-import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.currentCompositionLocalContext
 import androidx.compose.ui.layout.ContentScale
+import androidx.core.content.ContextCompat
 import androidx.room.Room
 import coil.compose.rememberAsyncImagePainter
 import com.mobilecomputing.data.User
 import com.mobilecomputing.data.UserDao
 import com.mobilecomputing.data.UserDataBase
 import java.io.File
+import androidx.core.app.NotificationCompat
 
 
 class MainActivity : ComponentActivity() {
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "channel_id",
+                "Channel name",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+
         setContent {
             MobileComputingTheme {
                 val applicationContext = this.applicationContext
@@ -87,13 +99,33 @@ class MainActivity : ComponentActivity() {
                     .build()
                 val userDao = db.userDao()
 
-                MyApp(applicationContext, userDao)
+                MyApp(applicationContext, userDao, ::showNotification)
             }
         }
+    }
+
+    //https://www.youtube.com/watch?v=bHlLYhSrXvc
+    private fun showNotification(contentText: String, contentTitle: String) {
+        // Create an explicit intent for an Activity in your app.
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent: PendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notification = NotificationCompat.Builder(applicationContext, "channel_id")
+            .setContentText(contentText)
+            .setContentTitle(contentTitle)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(1, notification)
     }
 }
 
 data class Message(val author: String, val body: String)
+
 
 
     //: R.drawable.profile_picture
@@ -163,7 +195,13 @@ fun Conversation(message: List<Message>, innerPaddingValues: PaddingValues, user
 }
 
 @Composable
-fun SettingsContent(innerPaddingValues: PaddingValues, applicationContext: Context, user: User?, updatedUser: (User) -> Unit) {
+fun SettingsContent(
+    innerPaddingValues: PaddingValues,
+    applicationContext: Context,
+    user: User?,
+    updatedUser: (User) -> Unit,
+    sendNotification: (String, String) -> Unit
+) {
 
     val filename = "profile_pic_${System.currentTimeMillis()}"
     val file = File(applicationContext.filesDir, filename)
@@ -179,6 +217,26 @@ fun SettingsContent(innerPaddingValues: PaddingValues, applicationContext: Conte
         mutableStateOf<String>(user?.userName ?: "Nickname")
     }
 
+    var hasNotificationPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                applicationContext, android.Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        hasNotificationPermission = isGranted
+        if (isGranted) {
+            Log.d("SettingsContent", "Ilmoituslupa myönnetty")
+            sendNotification("You will be notified when ...", "Notifications enabled")
+        } else {
+            Log.d("SettingsContent", "Ilmoituslupa evätty")
+        }
+    }
+
 
     val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = PickVisualMedia(),
@@ -189,7 +247,7 @@ fun SettingsContent(innerPaddingValues: PaddingValues, applicationContext: Conte
             if (uri != null) {
 
                 //delete old filepath so there is only one pic at the time
-                currentFilePath?.let { oldFilePath ->
+                currentFilePath.let { oldFilePath ->
                     val oldFile = File(oldFilePath)
                     if (oldFile.exists()) {
                         oldFile.delete()
@@ -219,7 +277,6 @@ fun SettingsContent(innerPaddingValues: PaddingValues, applicationContext: Conte
 
 
 
-
     LazyColumn(
         modifier = Modifier
             .padding(top = innerPaddingValues.calculateTopPadding())
@@ -235,7 +292,7 @@ fun SettingsContent(innerPaddingValues: PaddingValues, applicationContext: Conte
 
         item {
             AsyncImage(
-                model = currentFilePath?.let { File(it) },
+                model = currentFilePath.let { File(it) },
                 contentDescription = null,
                 modifier = Modifier
                     .clickable(onClick = {
@@ -257,13 +314,43 @@ fun SettingsContent(innerPaddingValues: PaddingValues, applicationContext: Conte
                 modifier = Modifier.padding(all=8.dp)
             )
         }
+
+        if (!hasNotificationPermission){
+            item {
+                Button(
+                    onClick = {
+                        requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    },
+                ) {
+                    Text("Enable notifications")
+                }
+            }
+        }
+
+        item {
+            Button(
+                onClick = {
+                    sendNotification("Notificaatio nappulasta", "just niin")
+                }
+            ) {
+                Text("send notification")
+            }
+        }
+
+
     }
 
 
 }
 
 @Composable
-fun SettingsScreen(onNavigateToLandingPage: () -> Unit, applicationContext: Context, user: User?, updatedUser: (User) -> Unit) {
+fun SettingsScreen(
+    onNavigateToLandingPage: () -> Unit,
+    applicationContext: Context,
+    user: User?,
+    updatedUser: (User) -> Unit,
+    sendNotification: (String, String) -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -282,7 +369,7 @@ fun SettingsScreen(onNavigateToLandingPage: () -> Unit, applicationContext: Cont
             )
         },
     ) { innerPadding ->
-        SettingsContent(innerPadding, applicationContext, user, updatedUser)
+        SettingsContent(innerPadding, applicationContext, user, updatedUser, sendNotification)
     }
 }
 
@@ -315,7 +402,7 @@ fun LandingScreen(onNavigateToSettings: () -> Unit, user: User?) {
 
 
 @Composable
-fun MyApp(applicationContext: Context, userDao: UserDao) {
+fun MyApp(applicationContext: Context, userDao: UserDao, showNotification: (String, String) -> Unit) {
     val navController = rememberNavController()
     var user by remember {
         mutableStateOf<User?>(null)
@@ -324,6 +411,7 @@ fun MyApp(applicationContext: Context, userDao: UserDao) {
     LaunchedEffect(Unit) {
         user = userDao.findById(1)
     }
+
 
 
     NavHost(navController, startDestination = "landingScreen" ) {
@@ -342,7 +430,9 @@ fun MyApp(applicationContext: Context, userDao: UserDao) {
             updatedUser = { updatedUser ->
                 user = updatedUser
                 Thread { userDao.addOrUpdateUser(updatedUser) }.start()
-            }) }
+            },
+            showNotification
+            ) }
     }
 }
 
