@@ -230,10 +230,10 @@ fun SettingsContent(
     ) { isGranted: Boolean ->
         hasNotificationPermission = isGranted
         if (isGranted) {
-            Log.d("SettingsContent", "Ilmoituslupa myönnetty")
-            sendNotification("You will be notified when ...", "Notifications enabled")
+            Log.d("SettingsContent", "Notification permission granted")
+            sendNotification("Application can send notifications now", "Notifications enabled")
         } else {
-            Log.d("SettingsContent", "Ilmoituslupa evätty")
+            Log.d("SettingsContent", "Notification permission denied")
         }
     }
 
@@ -330,7 +330,7 @@ fun SettingsContent(
         item {
             Button(
                 onClick = {
-                    sendNotification("Notificaatio nappulasta", "just niin")
+                    sendNotification("Notification from button", "Test Notification")
                 }
             ) {
                 Text("send notification")
