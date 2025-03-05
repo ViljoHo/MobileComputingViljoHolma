@@ -1,5 +1,7 @@
 package com.mobilecomputing
 
+import com.mobilecomputing.ui.components.Message
+
 /**
  * SampleData for Jetpack Compose Tutorial
  */
