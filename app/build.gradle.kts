@@ -75,6 +75,7 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.5.0")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     androidTestImplementation("androidx.navigation:navigation-testing:$navVersion")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

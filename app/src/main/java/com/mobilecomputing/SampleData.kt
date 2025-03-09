@@ -49,29 +49,6 @@ object SampleData {
             "Nickname",
             "Writing Kotlin for UI seems so natural, Compose where have you been all my life?"
         ),
-        Message(
-            "Nickname",
-            "Android Studio next version's name is Arctic Fox"
-        ),
-        Message(
-            "Nickname",
-            "Android Studio Arctic Fox tooling for Compose is top notch ^_^"
-        ),
-        Message(
-            "Nickname",
-            "I didn't know you can now run the emulator directly from Android Studio"
-        ),
-        Message(
-            "Nickname",
-            "Compose Previews are great to check quickly how a composable layout looks like"
-        ),
-        Message(
-            "Nickname",
-            "Previews are also interactive after enabling the experimental setting"
-        ),
-        Message(
-            "Nickname",
-            "Have you tried writing build.gradle with KTS?"
-        ),
+
     )
 }

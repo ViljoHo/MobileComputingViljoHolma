@@ -14,6 +14,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -33,6 +34,7 @@ import com.mobilecomputing.data.UserDao
 import com.mobilecomputing.data.UserDataBase
 import com.mobilecomputing.data.NoteDao
 import com.mobilecomputing.data.Note
+import com.mobilecomputing.ui.components.ApiScreenContent
 import com.mobilecomputing.ui.components.Conversation
 import com.mobilecomputing.ui.components.SettingsContent
 import com.mobilecomputing.utils.NotificationHelper
@@ -58,6 +60,13 @@ class MainActivity : ComponentActivity() {
                 val userDao = db.userDao()
                 val noteDao = db.noteDao()
 
+                // initialize some notes to app
+                val notes = SampleData.conversationSample.map {
+                    Note(0, author = it.author, body = it.body)
+                }
+
+                noteDao.addNotes(notes)
+
                 MyApp(applicationContext, userDao, noteDao, showNotification = NotificationHelper::showNotification)
             }
         }
@@ -65,6 +74,35 @@ class MainActivity : ComponentActivity() {
 }
 
 
+@Composable
+fun ApiScreen(
+    onNavigateToLandingPage: () -> Unit,
+    applicationContext: Context,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.primary,
+                ),
+                title = {
+                    Text("Api Screen")
+                },
+                navigationIcon = {
+                    IconButton(onClick = {onNavigateToLandingPage()}) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back Button")
+                    }
+                }
+            )
+        },
+
+    ) { innerPadding ->
+        ApiScreenContent(innerPadding, applicationContext)
+
+    }
+
+}
 
 @Composable
 fun SettingsScreen(
@@ -98,7 +136,7 @@ fun SettingsScreen(
 
 
 @Composable
-fun LandingScreen(onNavigateToSettings: () -> Unit, user: User?, notes: List<Note>?, addNote: (Note) -> Unit) {
+fun LandingScreen(onNavigateToSettings: () -> Unit, onNavigateToApi: () -> Unit, user: User?, notes: List<Note>?, addNote: (Note) -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -110,6 +148,9 @@ fun LandingScreen(onNavigateToSettings: () -> Unit, user: User?, notes: List<Not
                     Text("Landing Screen")
                 },
                 actions = {
+                    IconButton(onClick = {onNavigateToApi()}) {
+                        Icon(Icons.Filled.Info, contentDescription = "Button to api page")
+                    }
                     IconButton(onClick = {onNavigateToSettings()}) {
                         Icon(Icons.Filled.Settings, contentDescription = "Settings button")
                     }
@@ -144,6 +185,7 @@ fun MyApp(applicationContext: Context, userDao: UserDao, noteDao: NoteDao, showN
 
     NavHost(navController, startDestination = "landingScreen" ) {
         composable("landingScreen") { LandingScreen(onNavigateToSettings = { navController.navigate("settingsScreen")},
+            onNavigateToApi = { navController.navigate("apiScreen")},
             user,
             notes,
             addNote = { newNote ->
@@ -167,6 +209,15 @@ fun MyApp(applicationContext: Context, userDao: UserDao, noteDao: NoteDao, showN
             },
             showNotification
             ) }
+        composable("apiScreen") { ApiScreen(onNavigateToLandingPage = {
+            navController.navigate("landingScreen") {
+                popUpTo("landingScreen") {
+                    inclusive = true
+                }
+            }
+        },
+            applicationContext,
+        ) }
     }
 }
 
