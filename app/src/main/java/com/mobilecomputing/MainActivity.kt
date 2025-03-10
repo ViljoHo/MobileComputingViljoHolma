@@ -3,6 +3,7 @@
 package com.mobilecomputing
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -42,6 +43,9 @@ import com.mobilecomputing.utils.NotificationHelper
 
 class MainActivity : ComponentActivity() {
 
+    private val prefName = "appPreferences"
+    private val isFirstLaunchKey = "isFirstLaunch"
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +55,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MobileComputingTheme {
                 val applicationContext = this.applicationContext
+                val sharedPreferences: SharedPreferences = applicationContext.getSharedPreferences(prefName, Context.MODE_PRIVATE)
                 val db = Room.databaseBuilder(
                             applicationContext,
                             UserDataBase::class.java, "User-database"
@@ -60,12 +65,19 @@ class MainActivity : ComponentActivity() {
                 val userDao = db.userDao()
                 val noteDao = db.noteDao()
 
-                // initialize some notes to app
-                val notes = SampleData.conversationSample.map {
-                    Note(0, author = it.author, body = it.body)
+                // initialize some notes to app in first launch
+                val isFirstLaunch = sharedPreferences.getBoolean(isFirstLaunchKey, true)
+
+                if (isFirstLaunch) {
+                    val notes = SampleData.conversationSample.map {
+                        Note(0, author = it.author, body = it.body)
+                    }
+
+                    noteDao.addNotes(notes)
+
+                    sharedPreferences.edit().putBoolean(isFirstLaunchKey, false).apply()
                 }
 
-                noteDao.addNotes(notes)
 
                 MyApp(applicationContext, userDao, noteDao, showNotification = NotificationHelper::showNotification)
             }
